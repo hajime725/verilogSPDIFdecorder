@@ -8,7 +8,7 @@
     output reg clkout=0,
     output reg [27:0] Dout=0,
 	 output reg [1:0] synccode=0,//B=1,M=2,W=3,ERROR=0
-	 output reg parityOK=0,//ƒpƒŠƒeƒBƒ`ƒFƒbƒNŒ‹‰Ê‚ª³‚µ‚¯‚ê‚Î1,Œë‚è‚Å0
+		output reg parityOK=0,//ãƒ‘ãƒªãƒ†ã‚£ãƒã‚§ãƒƒã‚¯çµæœãŒæ­£ã—ã‘ã‚Œã°1,èª¤ã‚Šã§0(paritycheck:OK=1,NG=0)
 	 output [23:0] AudioL,
 	 output [23:0] AudioR,
 	 output reg Audioclk=0
@@ -44,14 +44,14 @@
 	 assign AudioL=noneSIGNAL?0:AudioL1;
 	 assign AudioR=noneSIGNAL?0:AudioR1;
 
-	 /////////////////ƒpƒ‹ƒXŠÔŒŸo•”//////////////////////////////////
-	 always @(posedge clk)begin//ƒpƒ‹ƒXŠÔŒŸo•”
-		SPDIF1<=SPDIFin;//ƒƒ^ƒXƒe‘Îô
+	 /////////////////ãƒ‘ãƒ«ã‚¹æ™‚é–“æ¤œå‡ºéƒ¨//////////////////////////////////
+		always @(posedge clk)begin//ãƒ‘ãƒ«ã‚¹æ™‚é–“æ¤œå‡ºéƒ¨(pulse time detection)
+		SPDIF1<=SPDIFin;//ãƒ¡ã‚¿ã‚¹ãƒ†å¯¾ç­–
 		SPDIF2<=SPDIF1;
 		
-		if((SPDIF1!=SPDIF2)&&(timecounter>3))begin//•Ï‰»ƒGƒbƒWŒŸo
+			if((SPDIF1!=SPDIF2)&&(timecounter>3))begin//å¤‰åŒ–ã‚¨ãƒƒã‚¸æ¤œå‡º(changing edge detection )
 			noneSIGNAL=0;
-			edgeclk=0;//•Ï‰»‚²‚Æ‚ÌƒNƒƒbƒN
+				edgeclk=0;//å¤‰åŒ–ã”ã¨ã®ã‚¯ãƒ­ãƒƒã‚¯(changing edge clock )
 			timereg<= (timecounter<6'h3f)?(timecounter>>2):0;
 			timecounter<=1;
 		end else if(timecounter<6'h3f)timecounter<=timecounter+1;
@@ -60,7 +60,7 @@
 		
 	 end
 	 
-	 ////////////////©“®ü”g”ŒŸo//////////////////////////////////
+		////////////////è‡ªå‹•å‘¨æ³¢æ•°æ¤œå‡º(auto frequency detection)//////////////////////////////////
 	 assign freqselw=timereg[3]?3:(timereg[2]?2:(timereg[1]?1:0));
 	 always @(posedge clk)begin//frequency detector	 
 		if(freqcounter<12'hfff)freqcounter=freqcounter+1;
@@ -71,16 +71,16 @@
 		end	
 		
 		if((freqselw==freqselmax)/*&&(freqselmax!=0)*/)freqsel<=freqselmax;
-		//freqsel<=1;//192kHzŒÅ’è
+		//freqsel<=1;//192kHzå›ºå®š
 	 end
 	 
-	 /////////////////ŠÔ•M†‚ğBMCƒpƒ‹ƒX‹¤’ÊM†‚É•ÏŠ·//////////////////////////////////////
+		/////////////////æ™‚é–“å¹…ä¿¡å·ã‚’BMCãƒ‘ãƒ«ã‚¹å…±é€šä¿¡å·ã«å¤‰æ›(convert time width signal to pulse signal)//////////////////////////////////////
 	 assign BMCdec=(freqsel==0)?0:(timereg>>(freqsel-1));
 	 
-	 /////////////////ƒTƒuƒtƒŒ[ƒ€Ø‚èo‚µEo—Í////////////////////////////////////////////////
+		/////////////////ã‚µãƒ–ãƒ•ãƒ¬ãƒ¼ãƒ åˆ‡ã‚Šå‡ºã—ãƒ»å‡ºåŠ›(output subframe)////////////////////////////////////////////////
 	 assign synccodew=(BMC3==3)?(BMC2==3?2:(BMC0==3?1:((BMC0==2&&BMC1==1&&BMC2==2)?3:0))):0;//1:B,2:M,3:W,0:Error
 	 
-	 always @(posedge edgeclk)begin//ƒTƒuƒtƒŒ[ƒ€æ‚èo‚µ
+	 always @(posedge edgeclk)begin//ã‚µãƒ–ãƒ•ãƒ¬ãƒ¼ãƒ å–ã‚Šå‡ºã—
 		 BMC0<=BMCdec;
 		 BMC1<=BMC0;
 		 BMC2<=BMC1;
@@ -99,7 +99,7 @@
 			bufdat[27]=BMC4[0];
 		 end
 		 
-		 if(countbits==7'h40)begin//ƒTƒuƒtƒŒ[ƒ€‚P‚Â•ªóM‚µ‚½‚ço—Í‚·‚éB
+		 if(countbits==7'h40)begin//ã‚µãƒ–ãƒ•ãƒ¬ãƒ¼ãƒ ï¼‘ã¤åˆ†å—ä¿¡ã—ãŸã‚‰å‡ºåŠ›ã™ã‚‹ã€‚
 			parityOK<=~^bufdat;
 			Dout<=bufdat;
 			synccode<=syncreg;
@@ -107,7 +107,7 @@
 			if(parityOK)timeoutdt<=0;
 			else timeoutdt<=timeoutdt+1;
 			if(timeoutdt<192000)begin
-				if((synccode==1)||(synccode==2))begin//ƒtƒŒ[ƒ€‚²‚Æ‚ÉL^R“¯‚ÉXV
+				if((synccode==1)||(synccode==2))begin//ãƒ•ãƒ¬ãƒ¼ãƒ ã”ã¨ã«Lï¼RåŒæ™‚ã«æ›´æ–°
 					AudioL1<=AudioLbuf;
 					AudioR1<=AudioRbuf;
 					if(parityOK)AudioLbuf<=Dout&24'hffffff;
@@ -115,7 +115,7 @@
 				end
 				if(synccode==3)begin
 					Audioclk<=1;
-					if(parityOK)AudioRbuf<=Dout&24'hffffff;//R‚ÌƒTƒuƒtƒŒ[ƒ€ŒŸo
+					if(parityOK)AudioRbuf<=Dout&24'hffffff;//Rã®ã‚µãƒ–ãƒ•ãƒ¬ãƒ¼ãƒ æ¤œå‡º
 				end
 			end else begin
 				AudioL1<=0;
